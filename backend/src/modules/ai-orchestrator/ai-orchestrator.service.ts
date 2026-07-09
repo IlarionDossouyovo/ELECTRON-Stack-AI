@@ -33,7 +33,7 @@ export class AiOrchestratorService {
       const response = await axios.get(`${this.ollamaBaseUrl}/api/tags`);
       return response.data.models && response.data.models.length > 0;
     } catch (error) {
-      console.error('Ollama connection failed:', error.message);
+      console.error('Ollama connection failed:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   }
@@ -43,7 +43,7 @@ export class AiOrchestratorService {
       const response = await axios.get(`${this.ollamaBaseUrl}/api/tags`);
       return response.data.models?.map((m: any) => m.name) || [];
     } catch (error) {
-      console.error('Failed to get models:', error.message);
+      console.error('Failed to get models:', error instanceof Error ? error.message : 'Unknown error');
       return [];
     }
   }
@@ -74,8 +74,9 @@ export class AiOrchestratorService {
       
       return response.data.response;
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Ollama generation failed: ${error.message}`,
+        `Ollama generation failed: ${message}`,
         HttpStatus.SERVICE_UNAVAILABLE
       );
     }
@@ -88,7 +89,7 @@ export class AiOrchestratorService {
     const model = options?.model || this.defaultModel;
     
     try {
-      const response = await axios.post<OllamaResponse>(
+      const response = await axios.post<{ message?: { content?: string } }>(
         `${this.ollamaBaseUrl}/api/chat`,
         {
           model,
@@ -103,8 +104,9 @@ export class AiOrchestratorService {
       
       return response.data.message?.content || '';
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Ollama chat failed: ${error.message}`,
+        `Ollama chat failed: ${message}`,
         HttpStatus.SERVICE_UNAVAILABLE
       );
     }
@@ -114,7 +116,7 @@ export class AiOrchestratorService {
     const embeddingModel = model || 'nomic-embed-text:latest';
     
     try {
-      const response = await axios.post(
+      const response = await axios.post<{ embedding?: number[] }>(
         `${this.ollamaBaseUrl}/api/embeddings`,
         {
           model: embeddingModel,
@@ -123,10 +125,11 @@ export class AiOrchestratorService {
         { timeout: 60000 }
       );
       
-      return response.data.embedding;
+      return response.data.embedding || [];
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        `Ollama embedding failed: ${error.message}`,
+        `Ollama embedding failed: ${message}`,
         HttpStatus.SERVICE_UNAVAILABLE
       );
     }
